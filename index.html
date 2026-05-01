@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modal & Popup System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #161618;
+    --border: #2a2a2e;
+    --accent: #e8ff47;
+    --accent2: #ff6b47;
+    --accent3: #47b8ff;
+    --text: #f0f0f0;
+    --muted: #888;
+    --modal-bg: #111113;
+    --overlay: rgba(0,0,0,0.75);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 60px 24px;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 64px;
+    text-align: center;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 12px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 15px;
+    font-weight: 300;
+  }
+
+  /* Cards Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+
+  .card:hover {
+    border-color: #444;
+    transform: translateY(-2px);
+  }
+
+  .card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .card-icon.yellow { background: rgba(232,255,71,0.12); }
+  .card-icon.red    { background: rgba(255,107,71,0.12); }
+  .card-icon.blue   { background: rgba(71,184,255,0.12); }
+  .card-icon.green  { background: rgba(71,255,161,0.12); }
+  .card-icon.purple { background: rgba(180,71,255,0.12); }
+
+  .card h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    letter-spacing: 0.01em;
+  }
+
+  .card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: 6px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .btn-accent {
+    background: var(--accent);
+    color: #0d0d0f;
+  }
+  .btn-accent:hover { background: #d4eb2e; transform: scale(1.03); }
+
+  .btn-red {
+    background: var(--accent2);
+    color: #fff;
+  }
+  .btn-red:hover { background: #e55a38; transform: scale(1.03); }
+
+  .btn-blue {
+    background: var(--accent3);
+    color: #0d0d0f;
+  }
+  .btn-blue:hover { background: #2fa8f0; transform: scale(1.03); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-outline:hover { border-color: #666; background: rgba(255,255,255,0.04); }
+
+  .btn-ghost {
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+
+  /* ========================
+     OVERLAY
+  ======================== */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ========================
+     BASE MODAL
+  ======================== */
+  .modal {
+    background: var(--modal-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.6);
+
+    transform: translateY(24px) scale(0.97);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.25s ease;
+  }
+
+  .overlay.active .modal {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.06);
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1;
+  }
+
+  .modal-close:hover { background: rgba(255,255,255,0.12); color: var(--text); }
+
+  .modal-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 18px;
+  }
+
+  .modal h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .modal p {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* ========================
+     CONFIRM MODAL (danger style)
+  ======================== */
+  .modal.danger {
+    border-color: rgba(255,107,71,0.3);
+  }
+
+  .modal.danger .modal-icon {
+    background: rgba(255,107,71,0.15);
+  }
+
+  /* ========================
+     FORM MODAL
+  ======================== */
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s;
+    resize: none;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    border-color: var(--accent);
+  }
+
+  /* ========================
+     IMAGE/PREVIEW MODAL
+  ======================== */
+  .modal.image-modal {
+    max-width: 560px;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .modal-preview {
+    width: 100%;
+    height: 220px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .modal-preview::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 60%, var(--modal-bg));
+  }
+
+  .modal-preview-body {
+    padding: 28px 32px 32px;
+  }
+
+  /* ========================
+     NOTIFICATION TOAST
+  ======================== */
+  .toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+  }
+
+  .toast {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    min-width: 260px;
+    max-width: 340px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    pointer-events: all;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+
+    transform: translateX(120%);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.34, 1.4, 0.64, 1), opacity 0.25s ease;
+  }
+
+  .toast.show {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  .toast.hide {
+    transform: translateX(120%);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.25s ease;
+  }
+
+  .toast-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .toast-content { flex: 1; }
+
+  .toast-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+
+  .toast-msg {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .toast-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+
+  .toast-close:hover { color: var(--text); }
+
+  /* Toast progress bar */
+  .toast-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    border-radius: 0 0 10px 10px;
+    background: var(--accent);
+    width: 100%;
+    transform-origin: left;
+    animation: shrink 3s linear forwards;
+  }
+
+  @keyframes shrink { to { transform: scaleX(0); } }
+
+  .toast { position: relative; overflow: hidden; }
+
+  /* ========================
+     SIDE DRAWER
+  ======================== */
+  .drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay);
+    z-index: 150;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .drawer-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 340px;
+    max-width: 90vw;
+    background: var(--modal-bg);
+    border-left: 1px solid var(--border);
+    z-index: 151;
+    padding: 32px 28px;
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+  }
+
+  .drawer.active { transform: translateX(0); }
+
+  .drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+
+  .drawer h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .drawer-item:hover { color: var(--accent); }
+
+  .drawer-item-icon {
+    width: 36px;
+    height: 36px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .drawer-item-text { font-size: 14px; font-weight: 500; }
+  .drawer-item-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* ========================
+     LIGHTBOX MODAL
+  ======================== */
+  .lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    backdrop-filter: blur(10px);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+
+  .lightbox-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .lightbox-box {
+    width: min(520px, 90vw);
+    height: min(360px, 70vh);
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 80px;
+    position: relative;
+    transform: scale(0.88);
+    transition: transform 0.35s cubic-bezier(0.34, 1.3, 0.64, 1);
+    overflow: hidden;
+  }
+
+  .lightbox-overlay.active .lightbox-box { transform: scale(1); }
+
+  .lightbox-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+
+  .lightbox-close:hover { background: rgba(255,255,255,0.2); }
+
+  /* Floating stars in lightbox */
+  .star {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0.4;
+    animation: twinkle 2s infinite alternate;
+  }
+
+  @keyframes twinkle {
+    to { opacity: 0.05; transform: scale(0.5); }
+  }
+
+  /* ========================
+     SECTION LABELS
+  ======================== */
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section { margin-bottom: 48px; }
+
+  /* Footer */
+  .footer {
+    margin-top: 80px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .page { padding: 40px 16px; }
+    .modal { padding: 24px 20px; }
+    .modal-actions { flex-direction: column; }
+    .modal-actions .btn { width: 100%; justify-content: center; }
+    .drawer { width: 100%; max-width: 100%; border-left: none; border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ======= PAGE ======= -->
+<div class="page">
+
+  <div class="header">
+    <div class="tag">Task 2 — Project 1</div>
+    <h1>Modal & <span>Popup</span> System</h1>
+    <p class="subtitle">Reusable, animated, responsive modal components</p>
+  </div>
+
+  <!-- Section: Basic Modals -->
+  <div class="section">
+    <div class="section-label">Basic Modals</div>
+    <div class="grid">
+
+      <div class="card">
+        <div class="card-icon yellow">💬</div>
+        <h3>Info Modal</h3>
+        <p>A clean informational dialog with title, message, and action buttons.</p>
+        <button class="btn btn-accent" onclick="openModal('infoModal')">Open Info</button>
+      </div>
+
+      <div class="card">
+        <div class="card-icon red">🗑️</div>
+        <h3>Confirm / Danger</h3>
+        <p>Delete confirmation with destructive action styling and warning state.</p>
+        <button class="btn btn-red" onclick="openModal('confirmModal')">Open Confirm</button>
+      </div>
+
+      <div class="card">
+        <div class="card-icon blue">📝</div>
+        <h3>Form Modal</h3>
+        <p>A form inside a modal — name, email, message with live submit feedback.</p>
+        <button class="btn btn-blue" onclick="openModal('formModal')">Open Form</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Section: Advanced -->
+  <div class="section">
+    <div class="section-label">Advanced Popups</div>
+    <div class="grid">
+
+      <div class="card">
+        <div class="card-icon yellow">🖼️</div>
+        <h3>Preview Modal</h3>
+        <p>Modal with a visual header area — great for media, product previews.</p>
+        <button class="btn btn-accent" onclick="openModal('previewModal')">Open Preview</button>
+      </div>
+
+      <div class="card">
+        <div class="card-icon blue">🌌</div>
+        <h3>Lightbox</h3>
+        <p>Full-screen overlay with zoom-in animation for immersive content display.</p>
+        <button class="btn btn-blue" onclick="openLightbox()">Open Lightbox</button>
+      </div>
+
+      <div class="card">
+        <div class="card-icon green">📋</div>
+        <h3>Side Drawer</h3>
+        <p>A slide-in panel from the right — great for navigation or settings.</p>
+        <button class="btn btn-outline" onclick="openDrawer()">Open Drawer</button>
+      </div>
+
+      <div class="card">
+        <div class="card-icon purple">🔔</div>
+        <h3>Toast Notifications</h3>
+        <p>Auto-dismiss notification toasts with progress bar and different states.</p>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-ghost" onclick="showToast('success')">✓ Success</button>
+          <button class="btn btn-ghost" onclick="showToast('error')">✕ Error</button>
+          <button class="btn btn-ghost" onclick="showToast('info')">ℹ Info</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">Modal & Popup System — Task 2, Project 1</div>
+</div>
+
+
+<!-- ======= OVERLAYS ======= -->
+
+<!-- 1. INFO MODAL -->
+<div class="overlay" id="infoModal" onclick="handleOverlayClick(event, 'infoModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('infoModal')">×</button>
+    <div class="modal-icon yellow" style="background:rgba(232,255,71,0.12)">💡</div>
+    <h2>Did You Know?</h2>
+    <p>Modals are used to display critical information, get user input, or confirm actions without navigating away from the current page. They keep users in context.</p>
+    <div class="modal-actions">
+      <button class="btn btn-accent" onclick="closeModal('infoModal'); showToast('success')">Got it!</button>
+      <button class="btn btn-outline" onclick="closeModal('infoModal')">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. CONFIRM MODAL -->
+<div class="overlay" id="confirmModal" onclick="handleOverlayClick(event, 'confirmModal')">
+  <div class="modal danger">
+    <button class="modal-close" onclick="closeModal('confirmModal')">×</button>
+    <div class="modal-icon" style="background:rgba(255,107,71,0.15)">⚠️</div>
+    <h2>Delete Item?</h2>
+    <p>This action cannot be undone. The item will be permanently removed from your workspace and all associated data will be lost.</p>
+    <div class="modal-actions">
+      <button class="btn btn-red" onclick="closeModal('confirmModal'); showToast('error')">Delete Permanently</button>
+      <button class="btn btn-outline" onclick="closeModal('confirmModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- 3. FORM MODAL -->
+<div class="overlay" id="formModal" onclick="handleOverlayClick(event, 'formModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('formModal')">×</button>
+    <div class="modal-icon" style="background:rgba(71,184,255,0.12)">📬</div>
+    <h2>Send a Message</h2>
+    <p>Fill in the details below and we'll get back to you within 24 hours.</p>
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" placeholder="e.g. Sadia Ramzan">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" placeholder="you@example.com">
+    </div>
+    <div class="form-group">
+      <label>Message</label>
+      <textarea rows="3" placeholder="Write your message here..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-blue" onclick="closeModal('formModal'); showToast('info')">Send Message</button>
+      <button class="btn btn-outline" onclick="closeModal('formModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- 4. PREVIEW MODAL -->
+<div class="overlay" id="previewModal" onclick="handleOverlayClick(event, 'previewModal')">
+  <div class="modal image-modal">
+    <button class="modal-close" onclick="closeModal('previewModal')" style="z-index:2">×</button>
+    <div class="modal-preview">🌄</div>
+    <div class="modal-preview-body">
+      <h2 style="margin-bottom:8px">Mountain Sunrise</h2>
+      <p>A breathtaking view from 4,200 meters — captured at golden hour when the light paints the peaks in amber and rose.</p>
+      <div class="modal-actions">
+        <button class="btn btn-accent" onclick="closeModal('previewModal'); showToast('success')">Download</button>
+        <button class="btn btn-outline" onclick="closeModal('previewModal')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. SIDE DRAWER -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="sideDrawer">
+  <div class="drawer-header">
+    <h2>Quick Menu</h2>
+    <button class="modal-close" onclick="closeDrawer()">×</button>
+  </div>
+  <div class="drawer-item">
+    <div class="drawer-item-icon">🏠</div>
+    <div><div class="drawer-item-text">Dashboard</div><div class="drawer-item-sub">Overview & stats</div></div>
+  </div>
+  <div class="drawer-item">
+    <div class="drawer-item-icon">📁</div>
+    <div><div class="drawer-item-text">Projects</div><div class="drawer-item-sub">All your projects</div></div>
+  </div>
+  <div class="drawer-item">
+    <div class="drawer-item-icon">🔔</div>
+    <div><div class="drawer-item-text">Notifications</div><div class="drawer-item-sub">3 unread alerts</div></div>
+  </div>
+  <div class="drawer-item">
+    <div class="drawer-item-icon">⚙️</div>
+    <div><div class="drawer-item-text">Settings</div><div class="drawer-item-sub">Account & preferences</div></div>
+  </div>
+  <div class="drawer-item">
+    <div class="drawer-item-icon">🚪</div>
+    <div><div class="drawer-item-text">Logout</div><div class="drawer-item-sub">End your session</div></div>
+  </div>
+</div>
+
+<!-- 6. LIGHTBOX -->
+<div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox()">
+  <div class="lightbox-box" onclick="event.stopPropagation()">
+    <button class="lightbox-close" onclick="closeLightbox()">×</button>
+    <!-- Stars -->
+    <div class="star" style="top:20%;left:15%;animation-delay:0s"></div>
+    <div class="star" style="top:60%;left:80%;animation-delay:0.4s;width:4px;height:4px"></div>
+    <div class="star" style="top:80%;left:30%;animation-delay:0.8s"></div>
+    <div class="star" style="top:35%;left:70%;animation-delay:1.2s;width:5px;height:5px;opacity:0.6"></div>
+    <div class="star" style="top:10%;left:55%;animation-delay:0.3s"></div>
+    <div class="star" style="top:70%;left:55%;animation-delay:0.9s"></div>
+    <span style="position:relative;z-index:1">🌌</span>
+  </div>
+</div>
+
+<script>
+  // ---- Modal ----
+  function openModal(id) {
+    document.getElementById(id).classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function handleOverlayClick(e, id) {
+    if (e.target === document.getElementById(id)) closeModal(id);
+  }
+
+  // ---- Drawer ----
+  function openDrawer() {
+    document.getElementById('drawerOverlay').classList.add('active');
+    document.getElementById('sideDrawer').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    document.getElementById('drawerOverlay').classList.remove('active');
+    document.getElementById('sideDrawer').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // ---- Lightbox ----
+  function openLightbox() {
+    document.getElementById('lightboxOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    document.getElementById('lightboxOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  // ---- Toast ----
+  const toastConfig = {
+    success: { icon: '✅', title: 'Success!',  msg: 'Action completed successfully.',  color: '#e8ff47' },
+    error:   { icon: '❌', title: 'Deleted!',  msg: 'Item has been permanently removed.', color: '#ff6b47' },
+    info:    { icon: 'ℹ️', title: 'Message Sent!', msg: 'We will get back to you soon.', color: '#47b8ff' },
+  };
+
+  function showToast(type) {
+    const cfg = toastConfig[type];
+    const container = document.getElementById('toastContainer');
+
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `
+      <span class="toast-icon">${cfg.icon}</span>
+      <div class="toast-content">
+        <div class="toast-title">${cfg.title}</div>
+        <div class="toast-msg">${cfg.msg}</div>
+      </div>
+      <button class="toast-close" onclick="removeToast(this.parentElement)">×</button>
+      <div class="toast-bar" style="background:${cfg.color}"></div>
+    `;
+
+    container.appendChild(toast);
+    requestAnimationFrame(() => { requestAnimationFrame(() => { toast.classList.add('show'); }); });
+
+    setTimeout(() => removeToast(toast), 3200);
+  }
+
+  function removeToast(toast) {
+    toast.classList.add('hide');
+    setTimeout(() => toast.remove(), 350);
+  }
+
+  // ---- Keyboard ESC ----
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    ['infoModal','confirmModal','formModal','previewModal'].forEach(id => {
+      document.getElementById(id).classList.remove('active');
+    });
+    closeDrawer();
+    closeLightbox();
+    document.body.style.overflow = '';
+  });
+</script>
+</body>
+</html>
